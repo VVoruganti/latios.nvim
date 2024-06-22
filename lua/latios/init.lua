@@ -12,12 +12,21 @@ function M.setup(opts)
   })
 end
 
+-- function M.trigger_completion()
+--   local context = require('latios.utils').get_current_line_context()
+--   require('latios.server').request_completion(context, function(completion)
+--     if completion then
+--       require('latios.utils').display_completion(completion)
+--     end
+--   end)
+-- end
+
+local server = require('latios.server')
+local display = require('latios.display')
+
 function M.trigger_completion()
-  local context = require('latios.utils').get_current_line_context()
-  require('latios.server').request_completion(context, function(completion)
-    if completion then
-      require('latios.utils').display_completion(completion)
-    end
+  server.request_completion(function(completion)
+    display.show_completion(completion)
   end)
 end
 
