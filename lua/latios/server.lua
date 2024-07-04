@@ -150,6 +150,7 @@ end
 
 function M.request_completion(callback)
   local full_context = context.get_full_context()
+
   local prompt = construct_prompt(full_context)
 
 

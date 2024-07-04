@@ -1,5 +1,11 @@
 local M = {}
 
+function M.is_telescope_buffer()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local filetype = vim.api.nvim_buf_get_option(bufnr, 'filetype')
+  return filetype == 'TelescopePrompt'
+end
+
 function M.get_current_line_context()
   local line = vim.api.nvim_get_current_line()
   local col = vim.api.nvim_win_get_cursor(0)[2]
