@@ -25,10 +25,19 @@ end
 
 -- In lua/latios/context.lua (continued)
 function M.get_treesitter_context()
+  -- Check if there's a parser available for the current buffer
+  if not vim.treesitter.language.get_lang(vim.bo.filetype) then
+    return nil
+  end
+
   local context = {}
 
   -- Ensure we have a parser for the current buffer
   local parser = vim.treesitter.get_parser(0)
+  if not parser then
+    return nil
+  end
+
   local tree = parser:parse()[1]
   local root = tree:root()
 

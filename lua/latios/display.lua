@@ -1,28 +1,28 @@
 local M = {}
 local current_extmark_id = nil
 
-local highlight_options = {
-  default = {
-    virt_text = { { completion, 'LatiosCompletion' } },
-    virt_text_pos = 'overlay',
-    hl_mode = 'combine',
-  },
-  treesitter = {
-    virt_text = { { completion, '@text.note' } },
-    virt_text_pos = 'overlay',
-    hl_mode = 'combine',
-  },
-  comment = {
-    virt_text = { { completion, 'Comment' } },
-    virt_text_pos = 'overlay',
-    hl_mode = 'combine',
-  },
-  custom = {
-    virt_text = { { completion, 'LatiosCustom' } },
-    virt_text_pos = 'overlay',
-    hl_mode = 'combine',
-  }
-}
+-- local highlight_options = {
+--   default = {
+--     virt_text = { { completion, 'LatiosCompletion' } },
+--     virt_text_pos = 'overlay',
+--     hl_mode = 'combine',
+--   },
+--   treesitter = {
+--     virt_text = { { completion, '@text.note' } },
+--     virt_text_pos = 'overlay',
+--     hl_mode = 'combine',
+--   },
+--   comment = {
+--     virt_text = { { completion, 'Comment' } },
+--     virt_text_pos = 'overlay',
+--     hl_mode = 'combine',
+--   },
+--   custom = {
+--     virt_text = { { completion, 'LatiosCustom' } },
+--     virt_text_pos = 'overlay',
+--     hl_mode = 'combine',
+--   }
+-- }
 
 function M.show_completion(completion)
   local bufnr = vim.api.nvim_get_current_buf()

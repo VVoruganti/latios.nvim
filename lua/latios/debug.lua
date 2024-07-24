@@ -34,11 +34,17 @@ end
 
 -- Function to print to a file
 function M.print_to_file(message, level)
+  local msg = ""
+  if message then
+    msg = message
+  else
+    msg = "nil"
+  end
   if level < M.current_level then return end
 
   local file = io.open(M.debug_file_path, 'a')
   if file then
-    file:write(os.date('%Y-%m-%d %H:%M:%S ') .. message .. '\n')
+    file:write(os.date('%Y-%m-%d %H:%M:%S ') .. msg .. '\n')
     file:close()
   end
 end
@@ -46,7 +52,7 @@ end
 -- Function to print both to buffer and file
 function M.debug(message, level)
   level = level or M.DEBUG
-  M.print_to_buffer(message, level)
+  -- M.print_to_buffer(message, level)
   M.print_to_file(message, level)
 end
 
