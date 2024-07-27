@@ -23,8 +23,8 @@ local current_extmark_id = nil
 --     hl_mode = 'combine',
 --   }
 -- }
-
 function M.show_completion(completion)
+  if completion == 'nil' then return end
   local bufnr = vim.api.nvim_get_current_buf()
   local ns_id = vim.api.nvim_create_namespace('latios')
   local line, col = unpack(vim.api.nvim_win_get_cursor(0))
@@ -112,27 +112,6 @@ function M.accept_completion()
 
       vim.api.nvim_win_set_cursor(0, { end_line + 1, end_col })
 
-      -- -- Join all lines
-      -- local completion_text = table.concat(completion_lines, '\n')
-      --
-      -- -- Insert the completion text
-      -- local end_line = line + #completion_lines - 1
-      -- local end_col = col
-      -- if #completion_lines == 1 then
-      --   end_col = col + #completion_text
-      -- else
-      --   end_col = #completion_lines[#completion_lines]
-      -- end
-      --
-      -- -- Insert the completion text
-      -- vim.api.nvim_buf_set_text(bufnr, line, col, end_line, end_col, completion_lines)
-      --
-      -- -- Move the cursor to the end of the inserted text
-      -- -- local new_col = col + #completion_text
-      -- -- Move the cursor to the end of the inserted text
-      -- vim.api.nvim_win_set_cursor(0, { end_line + 1, end_col })
-
-      -- Ensure we're in insert mode at the end of the inserted text
       vim.cmd('startinsert!')
     end
     M.clear_completion()

@@ -2,10 +2,13 @@ local context = require('latios.context')
 local config = require('latios.config')
 local curl = require('plenary.curl')
 local bug = require('latios.debug')
+local profiler = require('latios.profiler')
 
 local M = {}
+local current_job_id = nil
 
 local function construct_prompt(full_context)
+  -- return profiler.profile("construct_prompt", function()
   -- System prompt
   local system_prompt = [[
   You are an AI programming assistant specialized in providing code completions
@@ -59,7 +62,6 @@ local function construct_prompt(full_context)
     else
       prompt = prompt .. lines[i] .. "\n"
     end
-    -- prompt = prompt .. lines[i] .. "\n"
   end
 
   -- Include function/class context if available
@@ -81,50 +83,133 @@ local function construct_prompt(full_context)
       { role = "user", content = prompt }
     }
   }
+  -- end)(full_context)
 end
 
 local function request_anthropic_completion(prompt_data, callback)
-  curl.post("https://api.anthropic.com/v1/messages", {
-    headers = {
-      ["Content-Type"] = "application/json",
-      ["X-API-Key"] = config.options.api_key,
-      ["Anthropic-Version"] = "2023-06-01"
-    },
-    body = vim.fn.json_encode({
-      system = prompt_data.system_prompt,
-      messages = prompt_data.messages,
-      -- model = "claude-3-haiku-20240307",
-      model = "claude-3-5-sonnet-20240620",
-      max_tokens = 100,
-      stop_sequences = { "\n\nHuman:" },
-      temperature = 0.8,
-    }),
-    callback = function(response)
-      vim.schedule(function()
-        if response.status == 200 then
-          local body = vim.fn.json_decode(response.body)
-          callback(body.content[1].text)
-        else
-          print("Error from Anthropic API:", response.status, response.body)
-          callback(nil)
-        end
-      end)
-    end
+  -- return profiler.profile("request_anthropic_completion", function()
+  local request_body = vim.fn.json_encode({
+    system = prompt_data.system_prompt,
+    messages = prompt_data.messages,
+    -- model = "claude-3-haiku-20240307",
+    model = "claude-3-5-sonnet-20240620",
+    max_tokens = 100,
+    stop_sequences = { "\n\nHuman:" },
+    temperature = 0.8,
   })
+
+  local stdout = {}
+  local stderr = {}
+
+  local job_id = vim.fn.jobstart({
+    'curl',
+    '-s',
+    '-H', 'Content-Type: application/json',
+    '-H', 'X-API-Key: ' .. config.options.api_key,
+    '-H', 'Anthropic-Version: 2023-06-01',
+    '-d', request_body,
+    'https://api.anthropic.com/v1/messages'
+  }, {
+    stdout_buffered = true,
+    stderr_buffered = true,
+    on_stdout = function(_, data)
+      if data then
+        vim.list_extend(stdout, data)
+      end
+    end,
+    on_stderr = function(_, data)
+      if data then
+        vim.list_extend(stderr, data)
+      end
+    end,
+    on_exit = function(_, exit_code)
+      if exit_code == 0 and #stdout > 0 then
+        local response = vim.fn.json_decode(table.concat(stdout))
+        local completion = response.content[1].text
+        bug.debug_info(completion)
+        callback(completion)
+      else
+        print("Error from Anthropic API:", table.concat(stderr, '\n'))
+        bug.debug_error(stderr)
+        callback(nil)
+      end
+    end,
+  })
+
+  return job_id
+
+  -- curl.post("https://api.anthropic.com/v1/messages", {
+  --   headers = {
+  --     ["Content-Type"] = "application/json",
+  --     ["X-API-Key"] = config.options.api_key,
+  --     ["Anthropic-Version"] = "2023-06-01"
+  --   },
+  --   body = request_body,
+  --   callback = function(response)
+  --     vim.schedule(function()
+  --       if response.status == 200 then
+  --         local body = vim.fn.json_decode(response.body)
+  --         callback(body.content[1].text)
+  --       else
+  --         print("Error from Anthropic API:", response.status, response.body)
+  --         callback(nil)
+  --       end
+  --     end)
+  --   end
+  -- })
 end
 
 function M.request_completion(callback)
-  local full_context = context.get_full_context()
+  -- Cancel any existing job
+  if current_job_id then
+    vim.fn.jobstop(current_job_id)
+    current_job_id = nil
+  end
+
+  local full_context = context.get_cached_context()
   local prompt = construct_prompt(full_context)
-  request_anthropic_completion(prompt, function(completion)
+
+  current_job_id = request_anthropic_completion(prompt, function(completion)
+    current_job_id = nil
     if completion then
-      callback(completion)
+      vim.schedule(function()
+        callback(completion)
+      end)
     else
       vim.schedule(function()
         vim.notify("Latios: Failed to get completion from Anthropic", vim.log.levels.WARN)
       end)
     end
   end)
+end
+
+local debounce_timer = nil
+
+function M.cancel_ongoing_requests()
+  if current_job_id then
+    bug.debug_info("Job Cancelled")
+    vim.fn.jobstop(current_job_id)
+    current_job_id = nil
+  end
+  if debounce_timer then
+    vim.loop.timer_stop(debounce_timer)
+    debounce_timer = nil
+  end
+end
+
+function M.debounced_request_completion(callback)
+  -- cancel any ongoing requests first
+  M.cancel_ongoing_requests()
+
+  -- if debounce_timer then
+  --   vim.loop.timer_stop(debounce_timer)
+  -- end
+
+  debounce_timer = vim.loop.new_timer()
+  debounce_timer:start(config.options.debounce_ms, 0, vim.schedule_wrap(function()
+    bug.debug_info("Completion called")
+    M.request_completion(callback)
+  end))
 end
 
 return M

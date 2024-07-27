@@ -19,5 +19,19 @@ end, {
   end
 })
 
+vim.api.nvim_create_user_command('LatiosProfileStart', function()
+  require('latios.profiler').start()
+  print("Latios profiling started")
+end, {})
+
+vim.api.nvim_create_user_command('LatiosProfileStop', function()
+  require('latios.profiler').stop()
+  print("Latios profiling stopped")
+end, {})
+
+vim.api.nvim_create_user_command('LatiosProfileReport', function()
+  require('latios.profiler').report()
+end, {})
+
 -- Load the main module
 require('latios').setup()

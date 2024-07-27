@@ -2,7 +2,7 @@ local M = {}
 
 local default_config = {
   api_key = "",
-  debounce_ms = 300,
+  debounce_ms = 500,
 }
 
 M.options = {}
